@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 
 
+const PACKAGES = {
+  starter: { title: 'Starter Package', limit: 5, description: 'Please upload 5 images.' },
+  normal: { title: 'Normal Package', limit: 10, description: 'Please upload 10 images.' },
+  default: { title: 'Image Upload', limit: 10, description: 'Please upload your images.' }
+};
+
 function App() {
   const [prompt, setPrompt] = useState('');
   const [name, setName] = useState('');
@@ -10,8 +16,21 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
+  // Get package from URL query parameter
+  const queryParams = new URLSearchParams(window.location.search);
+  const packageType = queryParams.get('package');
+  const currentPackage = PACKAGES[packageType] || PACKAGES.default;
+
   const handleFileChange = (e) => {
-    setFiles([...e.target.files]);
+    const selectedFiles = [...e.target.files];
+    if (selectedFiles.length > currentPackage.limit) {
+      alert(`You can only upload a maximum of ${currentPackage.limit} images for the ${currentPackage.title}.`);
+      // Reset the input value so the user can try again
+      e.target.value = '';
+      setFiles([]);
+    } else {
+      setFiles(selectedFiles);
+    }
   };
 
   const handleUpload = async () => {
@@ -103,7 +122,8 @@ function App() {
 
   return (
     <div style={{ padding: '2rem', fontFamily: 'Arial' }}>
-      <h1>Upload Images to Airtable</h1>
+      <h1>{currentPackage.title}</h1>
+      <p>{currentPackage.description}</p>
 
       <div style={{ marginBottom: '2rem', border: '1px solid #ccc', padding: '1rem' }}>
         <input
