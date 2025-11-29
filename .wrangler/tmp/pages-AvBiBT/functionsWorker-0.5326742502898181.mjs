@@ -220,6 +220,7 @@ async function onRequest3({ request, env }) {
     return new Response("Method Not Allowed", { status: 405 });
   }
   try {
+    console.log("Received upload request");
     const formData = await request.formData();
     const name = formData.get("name");
     const email = formData.get("email");
@@ -228,7 +229,7 @@ async function onRequest3({ request, env }) {
     const airtableUrl = `https://api.airtable.com/v0/${env.AIRTABLE_BASE_ID}/${env.AIRTABLE_TABLE_NAME}`;
     let pendingRecordId = null;
     if (email) {
-      const filterFormula = `AND({Email} = '${email}', {Image_Upload} != BLANK(), {Image_Upload2} = BLANK())`;
+      const filterFormula = `AND({Email} = '${email}', {Image_Upload}, NOT({Image_Upload2}))`;
       const encodedFormula = encodeURIComponent(filterFormula);
       const checkUrl = `${airtableUrl}?filterByFormula=${encodedFormula}&maxRecords=1&sort%5B0%5D%5Bfield%5D=Created&sort%5B0%5D%5Bdirection%5D=desc`;
       console.log("Checking for pending record with URL:", checkUrl);
@@ -847,7 +848,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// ../.wrangler/tmp/bundle-bCR9Wo/middleware-insertion-facade.js
+// ../.wrangler/tmp/bundle-Inwjy9/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -879,7 +880,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// ../.wrangler/tmp/bundle-bCR9Wo/middleware-loader.entry.ts
+// ../.wrangler/tmp/bundle-Inwjy9/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;
