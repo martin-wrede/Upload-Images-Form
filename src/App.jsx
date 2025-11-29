@@ -66,7 +66,7 @@ function App() {
       if (!imageUrl) throw new Error("Image URL missing in OpenAI response");
 
       // Save to Airtable
-      await saveToAirtable(prompt, imageUrl, 'User123');
+      await saveToAirtable(prompt, imageUrl, 'User123', email, files);
 
     } catch (error) {
       console.error("Error generating image:", error);
@@ -76,15 +76,22 @@ function App() {
   };
 
 
-  const saveToAirtable = async (prompt, imageUrl, user = 'Anonymous') => {
-    console.log("📦 Saving to Airtable:", { prompt, imageUrl, user }); // Add th
+  const saveToAirtable = async (prompt, imageUrl, user = 'Anonymous', email = '', files = []) => {
+    console.log("📦 Saving to Airtable:", { prompt, imageUrl, user, email, files });
     try {
+      const formData = new FormData();
+      formData.append('prompt', prompt);
+      formData.append('imageUrl', imageUrl);
+      formData.append('user', user);
+      formData.append('email', email);
+
+      files.forEach((file) => {
+        formData.append('images', file);
+      });
+
       const response = await fetch('/airtable', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ prompt, imageUrl, user }),
+        body: formData,
       });
 
       const result = await response.json();

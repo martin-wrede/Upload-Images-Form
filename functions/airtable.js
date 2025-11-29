@@ -17,12 +17,29 @@ export async function onRequest({ request, env }) {
   }
 
   try {
-    const { prompt, imageUrl, user, email, files } = await request.json();
+    const formData = await request.formData();
+    const prompt = formData.get('prompt');
+    const imageUrl = formData.get('imageUrl');
+    const user = formData.get('user');
+    const email = formData.get('email');
+    const files = formData.getAll('images');
 
     const airtableUrl = `https://api.airtable.com/v0/${env.AIRTABLE_BASE_ID}/${env.AIRTABLE_TABLE_NAME}`;
 
-
     const timestamp = new Date().toISOString();
+    const uploadedImageUrls = [];
+
+    // Upload files to R2
+    if (files && files.length > 0) {
+      for (const file of files) {
+        if (file instanceof File) {
+          const key = `${Date.now()}-${file.name}`;
+          await env.IMAGE_BUCKET.put(key, file.stream());
+          const publicUrl = `${env.R2_PUBLIC_URL}/${key}`;
+          uploadedImageUrls.push({ url: publicUrl });
+        }
+      }
+    }
 
     const fields = {
       Prompt: prompt,
@@ -36,18 +53,13 @@ export async function onRequest({ request, env }) {
       Timestamp: timestamp
     };
 
-    // Note: Airtable requires a public URL for attachments. 
-    // Since we don't have a storage service yet, we can't attach the uploaded files directly.
-    // If 'files' contained URLs, we would map them here:
-    // if (files && files.length > 0) {
-    //   fields.Image_Upload = files.map(f => ({ url: f.url }));
-    // }
+    if (uploadedImageUrls.length > 0) {
+      fields.Image_Upload = uploadedImageUrls;
+    }
 
     console.log(JSON.stringify({ fields }));
 
     console.log("Prompt:", prompt);
-
-    console.log("Type of Prompt:", typeof prompt);
     console.log("Image URL:", imageUrl);
     console.log("User:", user);
 
