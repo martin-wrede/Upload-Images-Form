@@ -52,11 +52,20 @@ function App() {
       });
 
       const result = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 403) {
+          alert(result.error);
+          return;
+        }
+        throw new Error(result.error || "Upload failed");
+      }
+
       console.log("✅ Uploaded to Airtable:", result);
       alert("Upload successful!");
     } catch (error) {
       console.error("❌ Error uploading to Airtable:", error);
-      alert("Upload failed.");
+      alert(error.message || "Upload failed.");
     } finally {
       setIsUploading(false);
     }
@@ -91,6 +100,7 @@ function App() {
 
     } catch (error) {
       console.error("Error generating image:", error);
+      alert("Error generating image. Please try again.");
     } finally {
       setIsLoading(false);
     }

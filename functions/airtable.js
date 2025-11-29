@@ -27,6 +27,36 @@ export async function onRequest({ request, env }) {
 
     const airtableUrl = `https://api.airtable.com/v0/${env.AIRTABLE_BASE_ID}/${env.AIRTABLE_TABLE_NAME}`;
 
+    // Check for pending record (Test uploaded, Paid empty)
+    let pendingRecordId = null;
+    if (email) {
+      const filterFormula = `AND({Email} = '${email}', NOT({Image_Upload} = ''), {Image_Upload2} = '')`;
+      const encodedFormula = encodeURIComponent(filterFormula);
+      const checkUrl = `${airtableUrl}?filterByFormula=${encodedFormula}&maxRecords=1&sort%5B0%5D%5Bfield%5D=Created&sort%5B0%5D%5Bdirection%5D=desc`;
+
+      try {
+        const checkRes = await fetch(checkUrl, {
+          headers: { 'Authorization': `Bearer ${env.AIRTABLE_API_KEY}` }
+        });
+        const checkData = await checkRes.json();
+        if (checkData.records && checkData.records.length > 0) {
+          pendingRecordId = checkData.records[0].id;
+        }
+      } catch (error) {
+        console.error("Error checking for pending record:", error);
+      }
+    }
+
+    // Logic: Block Test if pending exists
+    if (uploadColumn === 'Image_Upload' && pendingRecordId) {
+      return new Response(JSON.stringify({
+        error: "You have a pending test package. Please upload your final images to complete the cycle."
+      }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+
     const timestamp = new Date().toISOString();
     const uploadedImageUrls = [];
 
@@ -64,8 +94,6 @@ export async function onRequest({ request, env }) {
       fields[uploadColumn] = uploadedImageUrls;
     }
 
-    console.log(JSON.stringify({ fields }));
-
     console.log("Saving to Airtable with fields:", JSON.stringify(fields, null, 2));
 
     if (!imageUrl) {
@@ -77,10 +105,19 @@ export async function onRequest({ request, env }) {
         },
       });
     }
-    /// mw
 
-    const airtableRes = await fetch(airtableUrl, {
-      method: 'POST',
+    // Logic: Update if Paid and pending exists
+    let finalUrl = airtableUrl;
+    let method = 'POST';
+
+    if (uploadColumn === 'Image_Upload2' && pendingRecordId) {
+      finalUrl = `${airtableUrl}/${pendingRecordId}`;
+      method = 'PATCH';
+      console.log(`Updating pending record ${pendingRecordId}`);
+    }
+
+    const airtableRes = await fetch(finalUrl, {
+      method: method,
       headers: {
         'Authorization': `Bearer ${env.AIRTABLE_API_KEY}`,
         'Content-Type': 'application/json',
