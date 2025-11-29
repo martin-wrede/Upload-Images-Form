@@ -62,11 +62,7 @@ export async function onRequest({ request, env }) {
 
     console.log(JSON.stringify({ fields }));
 
-    console.log("Prompt:", prompt);
-    console.log("Image URL:", imageUrl);
-    console.log("User:", user);
-
-    /// mw
+    console.log("Saving to Airtable with fields:", JSON.stringify(fields, null, 2));
 
     if (!imageUrl) {
       return new Response(JSON.stringify({ error: "Missing imageUrl" }), {
@@ -78,8 +74,6 @@ export async function onRequest({ request, env }) {
       });
     }
     /// mw
-
-    console.log("Saving to Airtable with fields:", JSON.stringify(fields, null, 2));
 
     const airtableRes = await fetch(airtableUrl, {
       method: 'POST',
@@ -103,7 +97,13 @@ export async function onRequest({ request, env }) {
 
     if (!airtableRes.ok) {
       console.error("Airtable API Error:", data);
-      return new Response(JSON.stringify({ error: "Airtable API Error", details: data }), {
+      const errorMessage = data.error?.message || "Unknown Airtable Error";
+      const errorType = data.error?.type || "UNKNOWN_TYPE";
+      return new Response(JSON.stringify({
+        error: errorMessage,
+        type: errorType,
+        details: data
+      }), {
         status: airtableRes.status,
         headers: { "Content-Type": "application/json" }
       });

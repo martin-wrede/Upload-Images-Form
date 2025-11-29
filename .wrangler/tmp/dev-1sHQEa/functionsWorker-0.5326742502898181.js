@@ -113,9 +113,7 @@ async function onRequest2({ request, env }) {
       fields.Image_Upload = uploadedImageUrls;
     }
     console.log(JSON.stringify({ fields }));
-    console.log("Prompt:", prompt);
-    console.log("Image URL:", imageUrl);
-    console.log("User:", user);
+    console.log("Saving to Airtable with fields:", JSON.stringify(fields, null, 2));
     if (!imageUrl) {
       return new Response(JSON.stringify({ error: "Missing imageUrl" }), {
         status: 400,
@@ -125,7 +123,6 @@ async function onRequest2({ request, env }) {
         }
       });
     }
-    console.log("Saving to Airtable with fields:", JSON.stringify(fields, null, 2));
     const airtableRes = await fetch(airtableUrl, {
       method: "POST",
       headers: {
@@ -145,7 +142,13 @@ async function onRequest2({ request, env }) {
     }
     if (!airtableRes.ok) {
       console.error("Airtable API Error:", data);
-      return new Response(JSON.stringify({ error: "Airtable API Error", details: data }), {
+      const errorMessage = data.error?.message || "Unknown Airtable Error";
+      const errorType = data.error?.type || "UNKNOWN_TYPE";
+      return new Response(JSON.stringify({
+        error: errorMessage,
+        type: errorType,
+        details: data
+      }), {
         status: airtableRes.status,
         headers: { "Content-Type": "application/json" }
       });
@@ -203,9 +206,11 @@ async function onRequest3({ request, env }) {
     }
     const fields = {
       User: name || "Anonymous",
-      Email: email,
       Timestamp: timestamp
     };
+    if (email) {
+      fields.Email = email;
+    }
     if (uploadedImageUrls.length > 0) {
       fields.Image_Upload = uploadedImageUrls;
     }
@@ -229,7 +234,13 @@ async function onRequest3({ request, env }) {
     }
     if (!airtableRes.ok) {
       console.error("Airtable API Error:", data);
-      return new Response(JSON.stringify({ error: "Airtable API Error", details: data }), {
+      const errorMessage = data.error?.message || "Unknown Airtable Error";
+      const errorType = data.error?.type || "UNKNOWN_TYPE";
+      return new Response(JSON.stringify({
+        error: errorMessage,
+        type: errorType,
+        details: data
+      }), {
         status: airtableRes.status,
         headers: { "Content-Type": "application/json" }
       });

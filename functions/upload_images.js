@@ -43,9 +43,12 @@ export async function onRequest({ request, env }) {
 
         const fields = {
             User: name || 'Anonymous',
-            Email: email,
             Timestamp: timestamp
         };
+
+        if (email) {
+            fields.Email = email;
+        }
 
         if (uploadedImageUrls.length > 0) {
             fields.Image_Upload = uploadedImageUrls;
@@ -75,7 +78,13 @@ export async function onRequest({ request, env }) {
 
         if (!airtableRes.ok) {
             console.error("Airtable API Error:", data);
-            return new Response(JSON.stringify({ error: "Airtable API Error", details: data }), {
+            const errorMessage = data.error?.message || "Unknown Airtable Error";
+            const errorType = data.error?.type || "UNKNOWN_TYPE";
+            return new Response(JSON.stringify({
+                error: errorMessage,
+                type: errorType,
+                details: data
+            }), {
                 status: airtableRes.status,
                 headers: { "Content-Type": "application/json" }
             });
