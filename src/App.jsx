@@ -135,6 +135,8 @@ function App() {
         </button>
       </div>
 
+      {/* 
+
       <hr style={{ margin: '2rem 0' }} />
 
       <h1>Generate an Image with AI</h1>
@@ -159,6 +161,9 @@ function App() {
           <img src={result} alt="Generated" style={{ maxWidth: '100%', height: 'auto' }} />
         </div>
       )}
+
+      */}
+
     </div>
   );
 }
