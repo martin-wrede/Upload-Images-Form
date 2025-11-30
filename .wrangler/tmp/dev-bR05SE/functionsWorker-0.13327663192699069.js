@@ -41,47 +41,30 @@ async function onRequest({ request, env }) {
     }
     let finalPrompt = prompt;
     if (imageFile) {
-      console.log("\u{1F5BC}\uFE0F Image received. Analyzing with GPT-4o...");
-      const arrayBuffer = await imageFile.arrayBuffer();
-      let binary = "";
-      const bytes = new Uint8Array(arrayBuffer);
-      const len = bytes.byteLength;
-      for (let i = 0; i < len; i++) {
-        binary += String.fromCharCode(bytes[i]);
-      }
-      const base64Image = btoa(binary);
-      const dataUrl = `data:${imageFile.type};base64,${base64Image}`;
-      const descriptionResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+      console.log("\u{1F5BC}\uFE0F Image received. Generating variations (ignoring prompt)...");
+      const openAIFormData = new FormData();
+      openAIFormData.append("image", imageFile);
+      openAIFormData.append("n", "1");
+      openAIFormData.append("size", "1024x1024");
+      const apiResponse2 = await fetch("https://api.openai.com/v1/images/variations", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${env.VITE_APP_OPENAI_API_KEY}`,
-          "Content-Type": "application/json"
+          "Authorization": `Bearer ${env.VITE_APP_OPENAI_API_KEY}`
+          // Content-Type is automatically set by fetch for FormData
         },
-        body: JSON.stringify({
-          model: "gpt-4o",
-          messages: [
-            {
-              role: "user",
-              content: [
-                { type: "text", text: "Describe this image in detail, focusing on the main subject, setting, lighting, and style. Be concise but descriptive." },
-                { type: "image_url", image_url: { url: dataUrl } }
-              ]
-            }
-          ],
-          max_tokens: 300
-        })
+        body: openAIFormData
       });
-      const descriptionData = await descriptionResponse.json();
-      if (descriptionData.error) {
-        throw new Error(`GPT-4o Error: ${descriptionData.error.message}`);
+      const data2 = await apiResponse2.json();
+      if (data2.error) {
+        throw new Error(`OpenAI Variations Error: ${data2.error.message}`);
       }
-      const description = descriptionData.choices[0].message.content;
-      console.log("\u{1F4DD} Image Description:", description);
-      finalPrompt = `Create an image based on this description: "${description}". 
-
-Modification request: ${prompt}. 
-
-Ensure the modification is applied while keeping the original vibe.`;
+      return new Response(JSON.stringify(data2), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*"
+        }
+      });
     }
     console.log("\u{1F3A8} Generating image with prompt:", finalPrompt);
     const apiResponse = await fetch("https://api.openai.com/v1/images/generations", {

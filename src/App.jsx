@@ -22,6 +22,8 @@ function App() {
   const packageType = queryParams.get('package');
   const currentPackage = PACKAGES[packageType] || PACKAGES.default;
 
+  const [selectedImageIndex, setSelectedImageIndex] = useState("");
+
   const handleFileChange = (e) => {
     const selectedFiles = [...e.target.files];
     if (selectedFiles.length > currentPackage.limit) {
@@ -74,17 +76,34 @@ function App() {
   const generateImage = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/ai', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const selectedFile = selectedImageIndex !== "" ? files[selectedImageIndex] : null;
+
+      let body;
+      let headers = {};
+
+      if (selectedFile) {
+        const formData = new FormData();
+        formData.append('prompt', prompt); // Sent but ignored by backend for variations
+        formData.append('image', selectedFile);
+        formData.append('user', 'User123');
+        body = formData;
+      } else {
+        body = JSON.stringify({
           prompt,
           user: 'User123',
-        }),
+        });
+        headers['Content-Type'] = 'application/json';
+      }
+
+      const response = await fetch('/ai', {
+        method: 'POST',
+        headers: headers,
+        body: body,
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errData = await response.json();
+        throw new Error(errData.error || `HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
@@ -100,7 +119,7 @@ function App() {
 
     } catch (error) {
       console.error("Error generating image:", error);
-      alert("Error generating image. Please try again.");
+      alert(`Error generating image: ${error.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -177,15 +196,10 @@ function App() {
 
       {files.length > 0 && (
         <div style={{ marginBottom: '1rem' }}>
-          <label style={{ display: 'block', marginBottom: '0.5rem' }}>Select an image to modify (optional):</label>
+          <label style={{ display: 'block', marginBottom: '0.5rem' }}>Select an image to create a variation (optional):</label>
           <select
-            onChange={(e) => {
-              const selectedIndex = e.target.value;
-              // Store selected file index or null
-              // We'll just use a local variable or state if we wanted to be robust, 
-              // but for now let's just read it from the select in generateImage or add a state.
-              // Let's add a state for selectedImageIndex
-            }}
+            onChange={(e) => setSelectedImageIndex(e.target.value)}
+            value={selectedImageIndex}
             id="imageSelector"
             style={{ padding: '0.5rem', width: '300px' }}
           >
@@ -197,79 +211,26 @@ function App() {
             ))}
           </select>
           <p style={{ fontSize: '0.8rem', color: '#666' }}>
-            * You don't need to upload to Airtable first. Just select a file above.
+            * Selecting an image will ignore the prompt and generate a variation.
           </p>
         </div>
       )}
 
       <input
         type="text"
-        placeholder="Enter your prompt (e.g. 'make sky blue')"
+        placeholder="Enter your prompt (ignored if image selected)"
         value={prompt}
         onChange={e => setPrompt(e.target.value)}
-        style={{ padding: '0.5rem', width: '300px' }}
+        disabled={selectedImageIndex !== ""}
+        style={{ padding: '0.5rem', width: '300px', backgroundColor: selectedImageIndex !== "" ? '#f0f0f0' : 'white' }}
       />
       <button
-        onClick={async () => {
-          setIsLoading(true);
-          try {
-            const imageSelector = document.getElementById('imageSelector');
-            const selectedIndex = imageSelector ? imageSelector.value : "";
-            const selectedFile = selectedIndex !== "" ? files[selectedIndex] : null;
-
-            let body;
-            let headers = {};
-
-            if (selectedFile) {
-              const formData = new FormData();
-              formData.append('prompt', prompt);
-              formData.append('image', selectedFile);
-              formData.append('user', 'User123');
-              body = formData;
-              // Fetch automatically sets Content-Type to multipart/form-data with boundary
-            } else {
-              body = JSON.stringify({
-                prompt,
-                user: 'User123',
-              });
-              headers['Content-Type'] = 'application/json';
-            }
-
-            const response = await fetch('/ai', {
-              method: 'POST',
-              headers: headers,
-              body: body,
-            });
-
-            if (!response.ok) {
-              const errData = await response.json();
-              throw new Error(errData.error || `HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            const imageUrl = data.data?.[0]?.url;
-            console.log("OpenAI Response:", data);
-
-            setResult(imageUrl);
-
-            if (!imageUrl) throw new Error("Image URL missing in OpenAI response");
-
-            // Save to Airtable (optional, keeping existing logic)
-            // Note: If we modified an image, we might want to save that context, but for now just saving the result.
-            await saveToAirtable(prompt, imageUrl, 'User123', email, files, currentPackage.column);
-
-          } catch (error) {
-            console.error("Error generating image:", error);
-            alert(`Error generating image: ${error.message}`);
-          } finally {
-            setIsLoading(false);
-          }
-        }}
+        onClick={generateImage}
         disabled={isLoading}
         style={{ marginLeft: '1rem', padding: '0.5rem 1rem' }}
       >
 
-        {isLoading ? 'Processing...' : 'Generate / Modify'}
+        {isLoading ? 'Processing...' : 'Generate / Variation'}
       </button>
 
       {result && (
