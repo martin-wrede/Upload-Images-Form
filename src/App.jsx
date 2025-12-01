@@ -3,8 +3,8 @@ import React, { useState } from 'react';
 
 const PACKAGES = {
   test: { title: 'Test Package', limit: 2, description: 'Please upload 2 test images.', column: 'Image_Upload' },
-  starter: { title: 'Starter Package', limit: 5, description: 'Please upload 5 images.', column: 'Image_Upload2' },
-  normal: { title: 'Normal Package', limit: 10, description: 'Please upload 10 images.', column: 'Image_Upload2' },
+  starter: { title: 'Starter Package', limit: 3, description: 'Please upload 3 images.', column: 'Image_Upload2' },
+  normal: { title: 'Normal Package', limit: 8, description: 'Please upload 8 images.', column: 'Image_Upload2' },
   default: { title: 'Image Upload', limit: 10, description: 'Please upload your images.', column: 'Image_Upload2' }
 };
 
@@ -188,7 +188,7 @@ function App() {
       </div>
 
       {/** AI image gneration starts here */}
-
+      {/** 
 
       <hr style={{ margin: '2rem 0' }} />
 
@@ -238,7 +238,7 @@ function App() {
           <img src={result} alt="Generated" style={{ maxWidth: '100%', height: 'auto' }} />
         </div>
       )}
-
+ */}
     </div>
   );
 }

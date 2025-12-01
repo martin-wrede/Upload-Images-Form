@@ -54,7 +54,6 @@ export async function onRequest({ request, env }) {
       openAIFormData.append("image", imageFile);
       openAIFormData.append("n", "1");
       openAIFormData.append("size", "1024x1024");
-
       const apiResponse = await fetch("https://api.openai.com/v1/images/variations", {
         method: "POST",
         headers: {
